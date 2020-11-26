@@ -179,6 +179,11 @@ echo -n ">>> Copying the version file... "
 cp $BASE_DIR/VERSION $TMP_DIR/home/yi-hack/version
 echo "done!"
 
+# insert camera name file
+echo -n ">>> Creating the camera name file..."
+echo $CAMERA_NAME > $TMP_DIR/home/yi-hack/camera_name
+echo "done!"
+
 # insert the model suffix file
 echo -n ">>> Creating the model suffix file... "
 echo $CAMERA_ID > $TMP_DIR/home/yi-hack/model_suffix
