@@ -86,6 +86,8 @@ void print_usage(char *progname)
     fprintf(stderr, "\t\tstop a motion detection event\n");
     fprintf(stderr, "\t-d, --debug\n");
     fprintf(stderr, "\t\tenable debug\n");
+    fprintf(stderr, "\t-j [0-90],[0-90]");
+    fprintf(stderr, "\t\tjump to point X and Y on screen");
     fprintf(stderr, "\t-h, --help\n");
     fprintf(stderr, "\t\tprint this help\n");
 }
@@ -97,6 +99,7 @@ int main(int argc, char ** argv)
     int c, ret;
     int switch_on = NONE;
     int sensitivity = NONE;
+    int jumpto[2];
     int led = NONE;
     int save = NONE;
     int ir = NONE;
@@ -116,6 +119,8 @@ int main(int argc, char ** argv)
     int xxx = 0;
 
     file[0] = '\0';
+    jumpto[0] = -1;
+    jumpto[1] = -1;
 
     while (1) {
         static struct option long_options[] =
@@ -131,6 +136,7 @@ int main(int argc, char ** argv)
             {"preset",  required_argument, 0, 'p'},
             {"file", required_argument, 0, 'f'},
             {"start", required_argument, 0, 'S'},
+            {"jump", required_argument, 0, 'j'},
             {"stop", no_argument, 0, 'T'},
             {"xxx", no_argument, 0, 'x'},
             {"debug",  no_argument, 0, 'd'},
@@ -140,7 +146,7 @@ int main(int argc, char ** argv)
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        c = getopt_long (argc, argv, "t:s:l:v:i:r:b:m:p:f:S:Txdh",
+        c = getopt_long (argc, argv, "t:s:l:v:i:r:b:m:p:f:S:j:Txdh",
                          long_options, &option_index);
 
         /* Detect the end of the options. */
@@ -230,6 +236,43 @@ int main(int argc, char ** argv)
                 exit(EXIT_FAILURE);
             }
             if (endptr == optarg) {
+                print_usage(argv[0]);
+                exit(EXIT_FAILURE);
+            }
+            break;
+
+        case 'j':
+	    printf("j command\n");
+            /* Check for various possible errors */
+            if (strlen(optarg) < 1023) {
+		printf("j argument: %s\n", optarg);
+	        if (strchr(optarg, ',') == NULL) {
+		    print_usage(argv[0]);
+		    exit(EXIT_FAILURE);
+		} else {
+		    printf("strtoking\n");
+	            char *jX = strtok(optarg, ",");
+		    printf("token1: %s\n", jX);
+		    if (jX == NULL) {
+			print_usage(argv[0]);
+			exit(EXIT_FAILURE);
+		    }
+		    char *jY = strtok(NULL, ",");
+		    printf("token2: %s\n", jX);
+		    if (jY == NULL) {
+		   	print_usage(argv[0]);
+		   	exit(EXIT_FAILURE);
+		    }
+		    printf("strtoling %s, %s\n", jX, jY);
+		    jumpto[0] = strtol(jX, NULL, 10);
+		    jumpto[1] = strtol(jY, NULL, 10);
+		    printf("validating\n");
+		    if (jumpto[0] > 90 || jumpto[0] < 0 || jumpto[1] < 0 || jumpto[1] > 90) {
+			printf("X and Y must be between [0, 90]\n");
+		   	exit(EXIT_FAILURE);
+		    }
+		}
+            } else {
                 print_usage(argv[0]);
                 exit(EXIT_FAILURE);
             }
@@ -357,6 +400,14 @@ int main(int argc, char ** argv)
         mq_send(ipc_mq, IPC_MOVE_UP, sizeof(IPC_MOVE_UP) - 1, 0);
     } else if (move == MOVE_STOP) {
         mq_send(ipc_mq, IPC_MOVE_STOP, sizeof(IPC_MOVE_STOP) - 1, 0);
+    }
+
+    if (jumpto[0] > 0 || jumpto[1] > 0) {
+	printf("Jump to sending..\n");
+	char jumppoint[32] = IPC_JUMP_POINT;
+	jumppoint[16] = jumpto[0];
+	jumppoint[20] = jumpto[1];
+	mq_send(ipc_mq, (const char *)jumppoint, sizeof(IPC_JUMP_POINT) - 1, 0);
     }
 
     if (preset != NONE) {

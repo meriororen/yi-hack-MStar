@@ -89,11 +89,20 @@ mkdir -p "$(get_script_dir)/../build/rootfs"
 
 SRC_DIR=$(get_script_dir)/../src
 
-for SUB_DIR in $SRC_DIR/* ; do
-    if [ -d ${SUB_DIR} ]; then # Will not run if no directories are available
-        compile_module $(normalize_path "$SUB_DIR") || exit 1
-    fi
-done
+if [ "$1" == "" ]; then
+   for SUB_DIR in $SRC_DIR/* ; do
+   	if [ -d ${SUB_DIR} ]; then # Will not run if no directories are available
+		compile_module $(normalize_path "$SUB_DIR") || exit 1
+	fi
+   done
+else
+   if [ -d $SRC_DIR/$1 ]; then
+	   compile_module $(normalize_path "$SRC_DIR/$1") || exit 1
+   else
+	   echo "module $SRC_DIR/$1 does not exist" 
+	   exit 1
+   fi
+fi
 
 BIN_DIR=$(get_script_dir)/../bin
 BUILD_DIR=$(get_script_dir)/../build
